@@ -44,8 +44,18 @@ def criar_personagens_manual():
                 print("Nome já usado, digite outro.")
             nome = input("Digite o nome do personagen: ").strip()
 
-        papel = input("Digite o papel (ex: Mestre de RPG, Guerreiro): ").strip()
-        config_world = input("Digite a lore do mundo: ").strip()
+        while True:
+            papel = input("Digite o papel (ex: Mestre de RPG, Guerreiro): ").strip()
+            if papel:
+                break
+            print("O papel não pode estar vazio. Digite algo válido.")
+
+        while True:
+            config_world = input("Digite a lore do mundo: ").strip()
+            if config_world:
+                break
+            print("A lore do mundo não pode estar vazia. Digite algo válido.")
+
         def obter_inteiro(mensagem):
             while True:
                 valor_str = input(mensagem).strip()
@@ -53,6 +63,7 @@ def criar_personagens_manual():
                     return int(valor_str)
                 else:
                     print("Valor inválido! Digite um número inteiro (pode ser negativo).")
+
 
         vida_max = obter_inteiro("Digite VIDA MÁXIMA: ")
         mana_max = obter_inteiro("Digite MANA MÁXIMA: ")
@@ -117,180 +128,6 @@ def Talk(personagen_name, papel, chat_history, texto_usuario):
     chat_history.append({"role": "assistant", "content": reply})
     salvar_par_mensagem(personagen_name, texto_usuario, reply)
     return reply
-
-def mostrar_inventario(personagen_name, estado):
-    papel = estado["papel"]
-
-    # Extração limpa das informações
-
-    match = re.search(
-        r"Vida:\s*(\d+)/(\d+),\s*Mana:\s*(\d+)/(\d+),\s*Energia:\s*(\d+)/(\d+),\s*Dinheiro:\s*(\d+),\s*Itens:\s*(\[.*?\])",
-        papel
-    )
-    if match:
-        vida_atual, vida_max = match.group(1), match.group(2)
-        mana_atual, mana_max = match.group(3), match.group(4)
-        energia_atual, energia_max = match.group(5), match.group(6)
-        dinheiro = match.group(7)
-        itens_str = match.group(8)
-        try:
-            itens = ast.literal_eval(itens_str)
-        except:
-            itens = []
-
-        print(f"\n📦 Inventário de {personagen_name}:")
-        print(f"  ❤️ Vida:     {vida_atual}/{vida_max}")
-        print(f"  🔵 Mana:     {mana_atual}/{mana_max}")
-        print(f"  ⚡ Energia:  {energia_atual}/{energia_max}")
-        print(f"  💰 Dinheiro: {dinheiro}")
-        print(f"  🎒 Itens:    {', '.join(itens) if itens else 'nenhum'}")
-    else:
-        print(f"\n📦 Inventário de {personagen_name}: não foi possível extrair os dados.")
-
-def abrir_mercado(estados, personagens):
-    # Estoque da loja: item -> [preço, quantidade disponível]
-    loja = {
-        "poção de vida": [10, 20],
-        "poção de mana": [12, 15],
-        "espada de ferro": [50, 5],
-        "escudo de madeira": [30, 7]
-    }
-
-    while True:
-        print("\n🛒 Loja de Itens:")
-        for item, (preco, qtd) in loja.items():
-            print(f"  - {item.title()} (Preço: {preco} moedas, Estoque: {qtd})")
-
-        print("\nDigite 'sair' para voltar.")
-        personagen_name = input("Digite o nome do personagen que irá interagir no mercado: ").strip()
-        if personagen_name.lower() == "sair":
-            break
-        if personagen_name not in estados:
-            print("❌ Personagen não encontrado.")
-            continue
-
-        acao = input("Deseja [comprar] ou [vender]? ").strip().lower()
-        if acao == "sair":
-            break
-        if acao not in ["comprar", "vender"]:
-            print("Opção inválida. Tente novamente.")
-            continue
-
-        if acao == "comprar":
-            item_escolhido = input("Digite o nome do item para comprar: ").strip().lower()
-            if item_escolhido not in loja:
-                print("❌ Item não encontrado na loja.")
-                continue
-            preco, estoque = loja[item_escolhido]
-            if estoque == 0:
-                print("❌ Item esgotado na loja.")
-                continue
-
-            try:
-                quantidade = int(input(f"Quantas unidades de '{item_escolhido}' deseja comprar? (estoque: {estoque}): "))
-            except:
-                print("Quantidade inválida.")
-                continue
-            if quantidade <= 0 or quantidade > estoque:
-                print("Quantidade inválida ou acima do estoque.")
-                continue
-
-            personagen_info = personagens[personagen_name]
-            dinheiro = personagen_info[4]
-            custo_total = preco * quantidade
-
-            if dinheiro < custo_total:
-                print(f"💸 Dinheiro insuficiente. Você precisa de {custo_total} moedas.")
-                continue
-
-            confirmar = input(f"Confirma compra de {quantidade}x '{item_escolhido}' por {custo_total} moedas? (sim/não) ").strip().lower()
-            if confirmar != "sim":
-                print("Compra cancelada.")
-                continue
-
-            # Finaliza compra
-            personagen_info[4] -= custo_total
-            for _ in range(quantidade):
-                personagen_info[5].append(item_escolhido)
-            loja[item_escolhido][1] -= quantidade
-
-            # Atualiza papel
-            config_world, papel, vida, mana, energia, dinheiro, itens = valores
-            papel_completo = (
-                f"Você é {papel}. Vida: {vida[0]}, Mana: {mana[0]}, "
-                f"Energia: {energia[0]}, Dinheiro: {dinheiro}, Itens: {itens}.\n"
-                f"Você deve obedecer a historia do mundo que é: {config_world[0]}"
-                "Você é um personagem de RPG e deve responder somente dentro do contexto do jogo. "
-                "Quando rolar um dado seja qual for o numero de lados eles devem ter chances iguais ou seja se eu tiver um lado de 6 lado cada lado tem 16.666%% e vai seguindo com esta regra"
-                "Nunca diga que é uma IA ou que ajuda fora do jogo. Seja criativo e mantenha o papel."
-            )
-            estados[personagen_name]["papel"] = papel_completo
-            salvar_config(personagens)
-
-            print(f"✅ {personagen_name} comprou {quantidade}x '{item_escolhido}' por {custo_total} moedas.")
-
-        elif acao == "vender":
-            personagen_info = personagens[personagen_name]
-            inventario = personagen_info[5]
-            if not inventario:
-                print("❌ Inventário vazio, nada para vender.")
-                continue
-            print(f"Seu inventário: {', '.join(inventario)}")
-            item_escolhido = input("Digite o nome do item para vender: ").strip().lower()
-            if item_escolhido not in inventario:
-                print("❌ Item não encontrado no inventário.")
-                continue
-
-            quantidade_disponivel = inventario.count(item_escolhido)
-            try:
-                quantidade = int(input(f"Quantas unidades de '{item_escolhido}' deseja vender? (você tem: {quantidade_disponivel}): "))
-            except:
-                print("Quantidade inválida.")
-                continue
-            if quantidade <= 0 or quantidade > quantidade_disponivel:
-                print("Quantidade inválida.")
-                continue
-
-            # Define preço de venda (ex: 50% do preço da loja ou preço fixo)
-            preco_venda = loja.get(item_escolhido, [0, 0])[0] // 2
-            if preco_venda == 0:
-                preco_venda = 1  # preço mínimo
-
-            valor_total = preco_venda * quantidade
-            confirmar = input(f"Confirma venda de {quantidade}x '{item_escolhido}' por {valor_total} moedas? (sim/não) ").strip().lower()
-            if confirmar != "sim":
-                print("Venda cancelada.")
-                continue
-
-            # Remove do inventário
-            for _ in range(quantidade):
-                inventario.remove(item_escolhido)
-
-            # Adiciona dinheiro
-            personagen_info[4] += valor_total
-
-            # Atualiza estoque da loja (aumenta)
-            if item_escolhido in loja:
-                loja[item_escolhido][1] += quantidade
-            else:
-                loja[item_escolhido] = [preco_venda * 2, quantidade]  # recria item com preço padrão
-
-            # Atualiza papel
-            config_world, papel, vida, mana, energia, dinheiro, itens = valores
-            papel_completo = (
-                f"Você é {papel}. Vida: {vida[0]}, Mana: {mana[0]}, "
-                f"Energia: {energia[0]}, Dinheiro: {dinheiro}, Itens: {itens}.\n"
-                f"Você deve obedecer a historia do mundo que é: {config_world[0]}"
-                "Você é um personagem de RPG e deve responder somente dentro do contexto do jogo. "
-                "Quando rolar um dado seja qual for o numero de lados eles devem ter chances iguais ou seja se eu tiver um lado de 6 lado cada lado tem 16.666%% e vai seguindo com esta regra"
-                "Nunca diga que é uma IA ou que ajuda fora do jogo. Seja criativo e mantenha o papel."
-            )
-            estados[personagen_name]["papel"] = papel_completo
-            salvar_config(personagens)
-
-            print(f"✅ {personagen_name} vendeu {quantidade}x '{item_escolhido}' e recebeu {valor_total} moedas.")
-
-
 
 def main():
     personagens = carregar_config()
@@ -359,11 +196,16 @@ def main():
             if personagen_ativo == "geral":
                 print("No modo geral não é possível mostrar inventário. Escolha um personagen específico.\n")
             else:
-                mostrar_inventario(personagen_ativo, estados[personagen_ativo])
+                resposta = Talk(personagen_ativo, estados[personagen_ativo]["papel"], estados[personagen_ativo]["history"], texto)
+                print(f"{personagen_ativo}: {resposta}\n")
             continue
 
         if texto.lower() == "mercado":
-            abrir_mercado(estados, personagens)
+            if personagen_ativo == "geral":
+                print("No modo geral não é possível mostrar o mercado. Escolha um personagen específico.\n")
+            else:
+                resposta = Talk(personagen_ativo, estados[personagen_ativo]["papel"], estados[personagen_ativo]["history"], texto)
+                print(f"{personagen_ativo}: {resposta}\n")
             continue
 
         # Enviar para personagen específico usando PersonagenNome: mensagem
