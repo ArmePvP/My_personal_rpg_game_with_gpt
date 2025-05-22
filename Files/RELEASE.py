@@ -9,7 +9,7 @@ SAVE_FILE = "status_iniciais.txt"
 HISTORICO_PREFIX = "chat_history_"
 
 def carregar_config():
-    bots = {}
+    personagens = {}
     if os.path.exists(SAVE_FILE):
         with open(SAVE_FILE, "r", encoding="utf-8") as f:
             for linha in f:
@@ -20,32 +20,32 @@ def carregar_config():
                 nome = nome.strip()
                 try:
                     valores = ast.literal_eval(dados.strip())
-                    bots[nome] = valores
+                    personagens[nome] = valores
                 except Exception as e:
                     print(f"Erro lendo save do {nome}: {e}")
-    return bots
+    return personagens
 
-def salvar_config(bots):
+def salvar_config(personagens):
     with open(SAVE_FILE, "w", encoding="utf-8") as f:
-        for bot, valores in bots.items():
-            f.write(f"{bot} = {valores}\n")
+        for personagen, valores in personagens.items():
+            f.write(f"{personagen} = {valores}\n")
 
-def criar_bots_manual():
-    bots = {}
-    n = int(input("Quantos bots deseja criar? "))
+def criar_personagens_manual():
+    personagens = {}
+    n = int(input("Quantos Persongens deseja criar? "))
 
     for i in range(1, n+1):
-        print(f"\nConfiguração do bot {i}:")
-        nome = input("Digite o nome do bot: ").strip()
-        while not nome or nome in bots:
+        print(f"\nConfiguração do personagen {i}:")
+        nome = input("Digite o nome do personagen: ").strip()
+        while not nome or nome in personagens:
             if not nome:
                 print("Nome inválido, digite novamente.")
             else:
                 print("Nome já usado, digite outro.")
-            nome = input("Digite o nome do bot: ").strip()
+            nome = input("Digite o nome do personagen: ").strip()
 
         papel = input("Digite o papel (ex: Mestre de RPG, Guerreiro): ").strip()
-
+        config_world = input("Digite a lore do mundo: ").strip()
         def obter_inteiro(mensagem):
             while True:
                 valor_str = input(mensagem).strip()
@@ -69,22 +69,23 @@ def criar_bots_manual():
         itens_str = input("Digite os itens separados por vírgula (ex: espada, escudo): ").strip()
         itens = [item.strip() for item in itens_str.split(",")] if itens_str else []
 
-        bots[nome] = [
+        personagens[nome] = [
             papel,
-            [vida_atual, vida_max],
-            [mana_atual, mana_max],
-            [energia_atual, energia_max],
+            config_world,
+            [vida_max],
+            [mana_max],
+            [energia_max],
             dinheiro,
             itens
         ]
 
-    salvar_config(bots)
+    salvar_config(personagens)
     print("\nConfiguração criada e salva em save.txt")
-    return bots
+    return personagens
 
-def carregar_historico(bot_name):
+def carregar_historico(personagen_name):
     historico = []
-    arquivo = HISTORICO_PREFIX + bot_name + ".txt"
+    arquivo = HISTORICO_PREFIX + personagen_name + ".txt"
     if os.path.exists(arquivo):
         with open(arquivo, "r", encoding="utf-8") as f:
             for linha in f:
@@ -97,12 +98,12 @@ def carregar_historico(bot_name):
                     continue
     return historico
 
-def salvar_par_mensagem(bot_name, user_msg, bot_msg):
-    arquivo = HISTORICO_PREFIX + bot_name + ".txt"
+def salvar_par_mensagem(personagen_name, user_msg, personagen_msg):
+    arquivo = HISTORICO_PREFIX + personagen_name + ".txt"
     with open(arquivo, "a", encoding="utf-8") as f:
-        f.write(str([user_msg, bot_msg]) + "\n")
+        f.write(str([user_msg, personagen_msg]) + "\n")
 
-def Talk(bot_name, papel, chat_history, texto_usuario):
+def Talk(personagen_name, papel, chat_history, texto_usuario):
     mensagens = [{"role": "system", "content": papel}]
     mensagens += [msg for msg in chat_history if msg["role"] != "system"]
     mensagens.append({"role": "user", "content": texto_usuario})
@@ -114,14 +115,14 @@ def Talk(bot_name, papel, chat_history, texto_usuario):
     reply = resposta.choices[0].message.content
     chat_history.append({"role": "user", "content": texto_usuario})
     chat_history.append({"role": "assistant", "content": reply})
-    salvar_par_mensagem(bot_name, texto_usuario, reply)
+    salvar_par_mensagem(personagen_name, texto_usuario, reply)
     return reply
 
-def mostrar_inventario(bot_name, estado):
+def mostrar_inventario(personagen_name, estado):
     papel = estado["papel"]
 
     # Extração limpa das informações
-    
+
     match = re.search(
         r"Vida:\s*(\d+)/(\d+),\s*Mana:\s*(\d+)/(\d+),\s*Energia:\s*(\d+)/(\d+),\s*Dinheiro:\s*(\d+),\s*Itens:\s*(\[.*?\])",
         papel
@@ -137,16 +138,16 @@ def mostrar_inventario(bot_name, estado):
         except:
             itens = []
 
-        print(f"\n📦 Inventário de {bot_name}:")
+        print(f"\n📦 Inventário de {personagen_name}:")
         print(f"  ❤️ Vida:     {vida_atual}/{vida_max}")
         print(f"  🔵 Mana:     {mana_atual}/{mana_max}")
         print(f"  ⚡ Energia:  {energia_atual}/{energia_max}")
         print(f"  💰 Dinheiro: {dinheiro}")
         print(f"  🎒 Itens:    {', '.join(itens) if itens else 'nenhum'}")
     else:
-        print(f"\n📦 Inventário de {bot_name}: não foi possível extrair os dados.")
+        print(f"\n📦 Inventário de {personagen_name}: não foi possível extrair os dados.")
 
-def abrir_mercado(estados, bots):
+def abrir_mercado(estados, personagens):
     # Estoque da loja: item -> [preço, quantidade disponível]
     loja = {
         "poção de vida": [10, 20],
@@ -161,11 +162,11 @@ def abrir_mercado(estados, bots):
             print(f"  - {item.title()} (Preço: {preco} moedas, Estoque: {qtd})")
 
         print("\nDigite 'sair' para voltar.")
-        bot_name = input("Digite o nome do bot que irá interagir no mercado: ").strip()
-        if bot_name.lower() == "sair":
+        personagen_name = input("Digite o nome do personagen que irá interagir no mercado: ").strip()
+        if personagen_name.lower() == "sair":
             break
-        if bot_name not in estados:
-            print("❌ Bot não encontrado.")
+        if personagen_name not in estados:
+            print("❌ Personagen não encontrado.")
             continue
 
         acao = input("Deseja [comprar] ou [vender]? ").strip().lower()
@@ -194,8 +195,8 @@ def abrir_mercado(estados, bots):
                 print("Quantidade inválida ou acima do estoque.")
                 continue
 
-            bot_info = bots[bot_name]
-            dinheiro = bot_info[4]
+            personagen_info = personagens[personagen_name]
+            dinheiro = personagen_info[4]
             custo_total = preco * quantidade
 
             if dinheiro < custo_total:
@@ -208,27 +209,29 @@ def abrir_mercado(estados, bots):
                 continue
 
             # Finaliza compra
-            bot_info[4] -= custo_total
+            personagen_info[4] -= custo_total
             for _ in range(quantidade):
-                bot_info[5].append(item_escolhido)
+                personagen_info[5].append(item_escolhido)
             loja[item_escolhido][1] -= quantidade
 
             # Atualiza papel
-            papel, vida, mana, energia, dinheiro, itens = bot_info
+            config_world, papel, vida, mana, energia, dinheiro, itens = valores
             papel_completo = (
-                f"Você é {papel}. Vida: {vida[0]}/{vida[1]}, Mana: {mana[0]}/{mana[1]}, "
-                f"Energia: {energia[0]}/{energia[1]}, Dinheiro: {bot_info[4]}, Itens: {bot_info[5]}.\n"
+                f"Você é {papel}. Vida: {vida[0]}, Mana: {mana[0]}, "
+                f"Energia: {energia[0]}, Dinheiro: {dinheiro}, Itens: {itens}.\n"
+                f"Você deve obedecer a historia do mundo que é: {config_world[0]}"
                 "Você é um personagem de RPG e deve responder somente dentro do contexto do jogo. "
+                "Quando rolar um dado seja qual for o numero de lados eles devem ter chances iguais ou seja se eu tiver um lado de 6 lado cada lado tem 16.666%% e vai seguindo com esta regra"
                 "Nunca diga que é uma IA ou que ajuda fora do jogo. Seja criativo e mantenha o papel."
             )
-            estados[bot_name]["papel"] = papel_completo
-            salvar_config(bots)
+            estados[personagen_name]["papel"] = papel_completo
+            salvar_config(personagens)
 
-            print(f"✅ {bot_name} comprou {quantidade}x '{item_escolhido}' por {custo_total} moedas.")
+            print(f"✅ {personagen_name} comprou {quantidade}x '{item_escolhido}' por {custo_total} moedas.")
 
         elif acao == "vender":
-            bot_info = bots[bot_name]
-            inventario = bot_info[5]
+            personagen_info = personagens[personagen_name]
+            inventario = personagen_info[5]
             if not inventario:
                 print("❌ Inventário vazio, nada para vender.")
                 continue
@@ -264,7 +267,7 @@ def abrir_mercado(estados, bots):
                 inventario.remove(item_escolhido)
 
             # Adiciona dinheiro
-            bot_info[4] += valor_total
+            personagen_info[4] += valor_total
 
             # Atualiza estoque da loja (aumenta)
             if item_escolhido in loja:
@@ -273,70 +276,75 @@ def abrir_mercado(estados, bots):
                 loja[item_escolhido] = [preco_venda * 2, quantidade]  # recria item com preço padrão
 
             # Atualiza papel
-            papel, vida, mana, energia, dinheiro, itens = bot_info
+            config_world, papel, vida, mana, energia, dinheiro, itens = valores
             papel_completo = (
-                f"Você é {papel}. Vida: {vida[0]}/{vida[1]}, Mana: {mana[0]}/{mana[1]}, "
-                f"Energia: {energia[0]}/{energia[1]}, Dinheiro: {bot_info[4]}, Itens: {bot_info[5]}.\n"
+                f"Você é {papel}. Vida: {vida[0]}, Mana: {mana[0]}, "
+                f"Energia: {energia[0]}, Dinheiro: {dinheiro}, Itens: {itens}.\n"
+                f"Você deve obedecer a historia do mundo que é: {config_world[0]}"
                 "Você é um personagem de RPG e deve responder somente dentro do contexto do jogo. "
+                "Quando rolar um dado seja qual for o numero de lados eles devem ter chances iguais ou seja se eu tiver um lado de 6 lado cada lado tem 16.666%% e vai seguindo com esta regra"
                 "Nunca diga que é uma IA ou que ajuda fora do jogo. Seja criativo e mantenha o papel."
             )
-            estados[bot_name]["papel"] = papel_completo
-            salvar_config(bots)
+            estados[personagen_name]["papel"] = papel_completo
+            salvar_config(personagens)
 
-            print(f"✅ {bot_name} vendeu {quantidade}x '{item_escolhido}' e recebeu {valor_total} moedas.")
+            print(f"✅ {personagen_name} vendeu {quantidade}x '{item_escolhido}' e recebeu {valor_total} moedas.")
 
 
 
 def main():
-    bots = carregar_config()
-    if not bots:
-        bots = criar_bots_manual()
+    personagens = carregar_config()
+    if not personagens:
+        personagens = criar_personagens_manual()
 
     estados = {}
-    for bot_name, valores in bots.items():
-        papel, vida, mana, energia, dinheiro, itens = valores
+    for personagen_name, valores in personagens.items():
+        config_world, papel, vida, mana, energia, dinheiro, itens = valores
         papel_completo = (
-            f"Você é {papel}. Vida: {vida[0]}/{vida[1]}, Mana: {mana[0]}/{mana[1]}, "
-            f"Energia: {energia[0]}/{energia[1]}, Dinheiro: {dinheiro}, Itens: {itens}.\n"
+            f"Você é {papel}. Vida: {vida[0]}, Mana: {mana[0]}, "
+            f"Energia: {energia[0]}, Dinheiro: {dinheiro}, Itens: {itens}.\n"
+            f"Você deve obedecer a historia do mundo que é: {config_world[0]}"
             "Você é um personagem de RPG e deve responder somente dentro do contexto do jogo. "
-            "Quando rolar um dado seja qual for o numero de lados eles devem ter chances iguais ou seja se eu tiver um lado de 6 lado cada lado tem 16.666%% e vai seguindo com esta regra"           "Nunca diga que é uma IA ou que ajuda fora do jogo. Seja criativo e mantenha o papel."
+            "Quando rolar um dado seja qual for o numero de lados eles devem ter chances iguais ou seja se eu tiver um lado de 6 lado cada lado tem 16.666%% e vai seguindo com esta regra"
+            "Nunca diga que é uma IA ou que ajuda fora do jogo. Seja criativo e mantenha o papel."
+
         )
-        chat_history = carregar_historico(bot_name)
-        estados[bot_name] = {"papel": papel_completo, "history": chat_history}
+        chat_history = carregar_historico(personagen_name)
+        estados[personagen_name] = {"papel": papel_completo, "history": chat_history}
 
-    bot_ativo = None
+    personagen_ativo = None
 
-    def escolher_bot():
-        nonlocal bot_ativo
-        print("Bots disponíveis:")
-        print("0. Geral (todos os bots)")
-        for i, bot_name in enumerate(estados.keys(), 1):
-            print(f"{i}. {bot_name}")
-        escolha = input("Escolha o número do bot para usar: ").strip()
+    def escolher_personagen():
+        nonlocal personagen_ativo
+        print("Personagens disponíveis:")
+        print("0. Geral (todos os personagens)")
+        for i, personagen_name in enumerate(estados.keys(), 1):
+            print(f"{i}. {personagen_name}")
+        escolha = input("Escolha o número do personagen para usar: ").strip()
         if escolha.isdigit():
             indice = int(escolha)
             if indice == 0:
-                bot_ativo = "geral"
-                print("Modo geral ativado: mensagens enviadas para todos os bots.\n")
+                personagen_ativo = "geral"
+                print("Modo geral ativado: mensagens enviadas para todos os personagens.\n")
             elif 1 <= indice <= len(estados):
-                bot_ativo = list(estados.keys())[indice - 1]
-                print(f"Bot ativo: {bot_ativo}\n")
+                personagen_ativo = list(estados.keys())[indice - 1]
+                print(f"Personagen ativo: {personagen_ativo}\n")
             else:
                 print("Número inválido.\n")
-                escolher_bot()
+                escolher_personagen()
         else:
-            print("Entrada inválida. Digite o número do bot.\n")
-            escolher_bot()
+            print("Entrada inválida. Digite o número do personagen.\n")
+            escolher_personagen()
 
-    escolher_bot()
+    escolher_personagen()
 
     print("Console geral ativo. Digite 'exit' para sair.")
-    print("Digite 'trocar' para mudar o bot ativo.")
-    print("Digite 'inventario' para ver inventário do bot ativo (não disponível no modo geral).")
+    print("Digite 'trocar' para mudar o personagen ativo.")
+    print("Digite 'inventario' para ver inventário do personagen ativo (não disponível no modo geral).")
     print("Digite 'mercado' para abrir mercado.\n")
 
     while True:
-        prompt = f"{bot_ativo} > " if bot_ativo != "geral" else "Geral > "
+        prompt = f"{personagen_ativo} > " if personagen_ativo != "geral" else "Geral > "
         texto = input(prompt).strip()
 
         if texto.lower() == "exit":
@@ -344,42 +352,42 @@ def main():
             break
 
         if texto.lower() == "trocar":
-            escolher_bot()
+            escolher_personagen()
             continue
 
         if texto.lower() == "inventario":
-            if bot_ativo == "geral":
-                print("No modo geral não é possível mostrar inventário. Escolha um bot específico.\n")
+            if personagen_ativo == "geral":
+                print("No modo geral não é possível mostrar inventário. Escolha um personagen específico.\n")
             else:
-                mostrar_inventario(bot_ativo, estados[bot_ativo])
+                mostrar_inventario(personagen_ativo, estados[personagen_ativo])
             continue
 
         if texto.lower() == "mercado":
-            abrir_mercado(estados, bots)
+            abrir_mercado(estados, personagens)
             continue
 
-        # Enviar para bot específico usando BotNome: mensagem
+        # Enviar para personagen específico usando PersonagenNome: mensagem
         if ":" in texto:
-            possivel_bot, mensagem = texto.split(":", 1)
-            possivel_bot = possivel_bot.strip()
+            possivel_personagen, mensagem = texto.split(":", 1)
+            possivel_personagen = possivel_personagen.strip()
             mensagem = mensagem.strip()
-            if possivel_bot in estados:
-                resposta = Talk(possivel_bot, estados[possivel_bot]["papel"], estados[possivel_bot]["history"], mensagem)
-                print(f"{possivel_bot}: {resposta}\n")
+            if possivel_personagen in estados:
+                resposta = Talk(possivel_personagen, estados[possivel_personagen]["papel"], estados[possivel_personagen]["history"], mensagem)
+                print(f"{possivel_personagen}: {resposta}\n")
                 continue
             else:
-                print(f"Bot '{possivel_bot}' não encontrado.\n")
+                print(f"Personagen '{possivel_personagen}' não encontrado.\n")
                 continue
 
         # Se modo geral, envia para todos
-        if bot_ativo == "geral":
-            for bot_name, estado in estados.items():
-                resposta = Talk(bot_name, estado["papel"], estado["history"], texto)
-                print(f"{bot_name}: {resposta}")
+        if personagen_ativo == "geral":
+            for personagen_name, estado in estados.items():
+                resposta = Talk(personagen_name, estado["papel"], estado["history"], texto)
+                print(f"{personagen_name}: {resposta}")
             print()
         else:
-            resposta = Talk(bot_ativo, estados[bot_ativo]["papel"], estados[bot_ativo]["history"], texto)
-            print(f"{bot_ativo}: {resposta}\n")
+            resposta = Talk(personagen_ativo, estados[personagen_ativo]["papel"], estados[personagen_ativo]["history"], texto)
+            print(f"{personagen_ativo}: {resposta}\n")
 
 
 if __name__ == "__main__":
